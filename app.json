@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ClipartAI",
+    "slug": "clipartai",
+    "version": "1.0.0",
+    "scheme": "clipartai",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.clipartai.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#7C3AED"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image-picker",
+      "expo-media-library"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
