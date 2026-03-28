@@ -12,7 +12,7 @@ const PORT = Number(process.env.PORT || 3000);
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || "*";
 const TRUST_PROXY = process.env.TRUST_PROXY ?? "1";
-const REPLICATE_MODEL = process.env.REPLICATE_MODEL || "stability-ai/sdxl";
+const REPLICATE_MODEL = (process.env.REPLICATE_MODEL || "").trim();
 const GENERATE_RATE_LIMIT_PER_MIN = Number(
   process.env.GENERATE_RATE_LIMIT_PER_MIN || 5,
 );
@@ -27,7 +27,6 @@ const REPLICATE_MODEL_FALLBACKS = (process.env.REPLICATE_MODEL_FALLBACKS || "")
 const REPLICATE_MODEL_CANDIDATES = [
   REPLICATE_MODEL,
   ...REPLICATE_MODEL_FALLBACKS,
-  "stability-ai/stable-diffusion",
 ].filter((value, index, arr) => arr.indexOf(value) === index);
 
 const STYLES = {
@@ -185,6 +184,10 @@ function extractRetryAfterSeconds(error) {
 }
 
 async function runGenerationWithModelFallback(input) {
+  if (REPLICATE_MODEL_CANDIDATES.length === 0) {
+    throw new Error("No configured Replicate model candidates.");
+  }
+
   let lastError = null;
 
   for (const model of REPLICATE_MODEL_CANDIDATES) {
@@ -336,6 +339,16 @@ app.post("/api/generate", generateLimiter, async (req, res) => {
       status: "error",
       code: "CONFIG_ERROR",
       message: "Server is not configured for generation.",
+    });
+    return;
+  }
+
+  if (REPLICATE_MODEL_CANDIDATES.length === 0) {
+    res.status(503).json({
+      status: "error",
+      code: "CONFIG_ERROR",
+      message:
+        "REPLICATE_MODEL is missing. Set a valid model in Railway environment variables.",
     });
     return;
   }

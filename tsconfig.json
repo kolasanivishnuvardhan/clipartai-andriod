@@ -3,9 +3,12 @@
     "allowJs": true,
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["dom", "esnext"],
+    "lib": [
+      "dom",
+      "esnext"
+    ],
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
@@ -13,7 +16,9 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     }
   },
   "include": [
@@ -28,5 +33,6 @@
     "node_modules",
     "android",
     "ios"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

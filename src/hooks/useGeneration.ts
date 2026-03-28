@@ -5,7 +5,6 @@ import { APP_CONFIG } from "../constants/config";
 import {
   generateStyleImage,
   ServiceError,
-  type ServiceErrorCode,
 } from "../services/aiService";
 import {
   useGenerationStore,
@@ -15,22 +14,6 @@ import { useUIStore, type UIState } from "../store/useUIStore";
 import type { GenerationResult, StyleId } from "../types";
 
 const FALLBACK_ERROR_MESSAGE = "Generation failed. Tap retry.";
-
-function toUserMessage(code?: ServiceErrorCode): string {
-  if (code === "NETWORK_ERROR") {
-    return "Check your connection and try again";
-  }
-  if (code === "RATE_LIMIT_ERROR") {
-    return "Too many requests. Wait a moment.";
-  }
-  if (code === "INVALID_IMAGE") {
-    return "This image format isn't supported";
-  }
-  if (code === "FILE_TOO_LARGE") {
-    return "Image too large. Max 10MB.";
-  }
-  return FALLBACK_ERROR_MESSAGE;
-}
 
 function isCompleted(result: GenerationResult): boolean {
   return result.status === "success" || result.status === "error";
@@ -72,8 +55,10 @@ export function useGeneration() {
           error: null,
         });
       } catch (error) {
-        const code = error instanceof ServiceError ? error.code : undefined;
-        const message = toUserMessage(code);
+        const message =
+          error instanceof ServiceError
+            ? error.message
+            : FALLBACK_ERROR_MESSAGE;
 
         setResult(styleId, {
           styleId,

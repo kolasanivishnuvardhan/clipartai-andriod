@@ -41,7 +41,7 @@ const createInitialResults = (): Record<StyleId, GenerationResult> => {
 export const useGenerationStore = create<GenerationState>((set: (partial: Partial<GenerationState> | ((state: GenerationState) => Partial<GenerationState>)) => void) => ({
   sourceImage: null,
   sourceImageBase64: null,
-  selectedStyles: [...STYLE_IDS],
+  selectedStyles: [STYLE_IDS[0]],
   results: createInitialResults(),
 
   setSourceImage: (image: ImageAsset) => {
@@ -118,7 +118,7 @@ export const useGenerationStore = create<GenerationState>((set: (partial: Partia
     set({
       sourceImage: null,
       sourceImageBase64: null,
-      selectedStyles: [...STYLE_IDS],
+      selectedStyles: [STYLE_IDS[0]],
       results: createInitialResults(),
     });
   },

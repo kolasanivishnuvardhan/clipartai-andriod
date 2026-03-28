@@ -96,6 +96,20 @@ function classifyAxiosError(error: AxiosError<BackendErrorPayload>): ServiceErro
     return new ServiceError("INVALID_IMAGE", "This image format isn't supported");
   }
 
+  if (backendCode === "CONFIG_ERROR") {
+    return new ServiceError(
+      "GENERATION_FAILED",
+      "Server model config is missing. Set REPLICATE_MODEL in Railway.",
+    );
+  }
+
+  if (backendCode === "MODEL_NOT_FOUND") {
+    return new ServiceError(
+      "GENERATION_FAILED",
+      "Configured model was not found. Update REPLICATE_MODEL in Railway.",
+    );
+  }
+
   if (backendCode === "GENERATION_FAILED" || status >= 500) {
     return new ServiceError("GENERATION_FAILED", "Generation failed. Tap retry.");
   }
