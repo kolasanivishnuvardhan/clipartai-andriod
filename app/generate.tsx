@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Image } from "expo-image";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { StyleGrid } from "../src/components/generation/StyleGrid";
 import { Button } from "../src/components/ui/Button";
@@ -35,7 +35,6 @@ export default function GenerateScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
-        entering={FadeInDown.duration(220)}
         style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl }}
       >
         <View

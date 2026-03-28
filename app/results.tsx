@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { ResultCard } from "../src/components/generation/ResultCard";
 import { Badge } from "../src/components/ui/Badge";
@@ -55,7 +55,6 @@ export default function ResultsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
-        entering={FadeInDown.duration(220)}
         style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl }}
       >
         <View

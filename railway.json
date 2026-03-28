@@ -1,0 +1,8 @@
+{
+  "build": {
+    "watchPatterns": ["backend/**"]
+  },
+  "deploy": {
+    "startCommand": "npm --prefix backend start"
+  }
+}

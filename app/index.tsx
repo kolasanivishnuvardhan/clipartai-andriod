@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { Button } from "../src/components/ui/Button";
 import { Card } from "../src/components/ui/Card";
@@ -57,7 +57,6 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
-        entering={FadeInDown.duration(260)}
         style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl }}
       >
         <View style={{ alignItems: "center", gap: spacing.sm }}>
