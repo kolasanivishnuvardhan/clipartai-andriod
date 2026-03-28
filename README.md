@@ -1,6 +1,6 @@
 # ClipartAI
 
-Production-grade Expo SDK 51 Android app with Expo Router, Zustand, React Query, and Railway backend.
+Production-grade Expo SDK 54 Android app with Expo Router, Zustand, React Query, and Railway backend.
 
 ## Setup
 
