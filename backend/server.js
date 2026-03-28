@@ -11,6 +11,18 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const PORT = Number(process.env.PORT || 3000);
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || "*";
+const TRUST_PROXY = process.env.TRUST_PROXY ?? "1";
+const REPLICATE_MODEL = process.env.REPLICATE_MODEL || "stability-ai/sdxl";
+const REPLICATE_MODEL_FALLBACKS = (process.env.REPLICATE_MODEL_FALLBACKS || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+const REPLICATE_MODEL_CANDIDATES = [
+  REPLICATE_MODEL,
+  ...REPLICATE_MODEL_FALLBACKS,
+  "stability-ai/stable-diffusion",
+].filter((value, index, arr) => arr.indexOf(value) === index);
 
 const STYLES = {
   cartoon: {
@@ -48,6 +60,11 @@ const STYLES = {
 const ALLOWED_STYLE_IDS = new Set(Object.keys(STYLES));
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 
+// Railway and other managed platforms sit behind reverse proxies.
+if (TRUST_PROXY === "1" || TRUST_PROXY.toLowerCase() === "true") {
+  app.set("trust proxy", 1);
+}
+
 const generateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -84,6 +101,38 @@ app.use(express.json({ limit: "12mb" }));
 const replicate = REPLICATE_API_TOKEN
   ? new Replicate({ auth: REPLICATE_API_TOKEN })
   : null;
+
+function isReplicateModelNotFound(error) {
+  const statusCode =
+    error?.response?.status ||
+    error?.status ||
+    error?.statusCode ||
+    null;
+  const message = String(error?.message || "");
+
+  return statusCode === 404 || message.includes("status 404 Not Found");
+}
+
+async function runGenerationWithModelFallback(input) {
+  let lastError = null;
+
+  for (const model of REPLICATE_MODEL_CANDIDATES) {
+    try {
+      const output = await replicate.run(model, { input });
+      return { output, model };
+    } catch (error) {
+      lastError = error;
+
+      if (!isReplicateModelNotFound(error)) {
+        throw error;
+      }
+
+      console.warn(`Replicate model not found: ${model}`);
+    }
+  }
+
+  throw lastError || new Error("No Replicate model candidates succeeded.");
+}
 
 function parseDataUri(imageBase64) {
   const match = imageBase64.match(/^data:([^;]+);base64,(.+)$/);
@@ -196,15 +245,13 @@ app.post("/api/generate", generateLimiter, async (req, res) => {
   const dataUri = parsed.dataUri || `data:image/png;base64,${parsed.base64Payload}`;
 
   try {
-    const output = await replicate.run("stability-ai/sdxl", {
-      input: {
-        image: dataUri,
-        prompt: style.prompt,
-        negative_prompt: style.negativePrompt,
-        strength: style.strength,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-      },
+    const { output, model } = await runGenerationWithModelFallback({
+      image: dataUri,
+      prompt: style.prompt,
+      negative_prompt: style.negativePrompt,
+      strength: style.strength,
+      num_inference_steps: 30,
+      guidance_scale: 7.5,
     });
 
     const imageUrl = Array.isArray(output) ? output[0] : output;
@@ -217,15 +264,21 @@ app.post("/api/generate", generateLimiter, async (req, res) => {
       styleId,
       imageUrl,
       status: "success",
+      model,
     });
   } catch (error) {
     console.error("Generation failed:", error);
+
+    const modelNotFound = isReplicateModelNotFound(error);
+
     res.status(502).json({
       styleId,
       imageUrl: null,
       status: "error",
-      code: "GENERATION_FAILED",
-      message: "Generation failed. Tap retry.",
+      code: modelNotFound ? "MODEL_NOT_FOUND" : "GENERATION_FAILED",
+      message: modelNotFound
+        ? "Generation model is unavailable. Configure REPLICATE_MODEL in Railway."
+        : "Generation failed. Tap retry.",
     });
   }
 });
