@@ -13,6 +13,12 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || "*";
 const TRUST_PROXY = process.env.TRUST_PROXY ?? "1";
 const REPLICATE_MODEL = process.env.REPLICATE_MODEL || "stability-ai/sdxl";
+const GENERATE_RATE_LIMIT_PER_MIN = Number(
+  process.env.GENERATE_RATE_LIMIT_PER_MIN || 5,
+);
+const REPLICATE_MIN_INTERVAL_MS = Number(
+  process.env.REPLICATE_MIN_INTERVAL_MS || 11_000,
+);
 const REPLICATE_MODEL_FALLBACKS = (process.env.REPLICATE_MODEL_FALLBACKS || "")
   .split(",")
   .map((value) => value.trim())
@@ -59,6 +65,17 @@ const STYLES = {
 
 const ALLOWED_STYLE_IDS = new Set(Object.keys(STYLES));
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+const SAFE_GENERATE_RATE_LIMIT_PER_MIN =
+  Number.isFinite(GENERATE_RATE_LIMIT_PER_MIN) && GENERATE_RATE_LIMIT_PER_MIN > 0
+    ? Math.floor(GENERATE_RATE_LIMIT_PER_MIN)
+    : 5;
+const SAFE_REPLICATE_MIN_INTERVAL_MS =
+  Number.isFinite(REPLICATE_MIN_INTERVAL_MS) && REPLICATE_MIN_INTERVAL_MS > 0
+    ? Math.floor(REPLICATE_MIN_INTERVAL_MS)
+    : 11_000;
+
+let replicateQueue = Promise.resolve();
+let nextReplicateRequestAt = 0;
 
 // Railway and other managed platforms sit behind reverse proxies.
 if (TRUST_PROXY === "1" || TRUST_PROXY.toLowerCase() === "true") {
@@ -67,7 +84,7 @@ if (TRUST_PROXY === "1" || TRUST_PROXY.toLowerCase() === "true") {
 
 const generateLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: SAFE_GENERATE_RATE_LIMIT_PER_MIN,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -101,6 +118,31 @@ app.use(express.json({ limit: "12mb" }));
 const replicate = REPLICATE_API_TOKEN
   ? new Replicate({ auth: REPLICATE_API_TOKEN })
   : null;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForReplicateSlot() {
+  const now = Date.now();
+  const waitMs = Math.max(0, nextReplicateRequestAt - now);
+
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+
+  nextReplicateRequestAt = Date.now() + SAFE_REPLICATE_MIN_INTERVAL_MS;
+}
+
+function runInReplicateQueue(task) {
+  const taskPromise = replicateQueue.then(async () => {
+    await waitForReplicateSlot();
+    return task();
+  });
+
+  replicateQueue = taskPromise.catch(() => undefined);
+  return taskPromise;
+}
 
 function isReplicateModelNotFound(error) {
   const statusCode =
@@ -147,10 +189,38 @@ async function runGenerationWithModelFallback(input) {
 
   for (const model of REPLICATE_MODEL_CANDIDATES) {
     try {
-      const output = await replicate.run(model, { input });
+      const output = await runInReplicateQueue(() => replicate.run(model, { input }));
       return { output, model };
     } catch (error) {
       lastError = error;
+
+      if (isReplicateRateLimited(error)) {
+        const retryAfterSeconds = extractRetryAfterSeconds(error) ?? 10;
+
+        console.warn(
+          `Replicate throttled ${model}; retrying in ~${retryAfterSeconds}s.`,
+        );
+
+        await sleep((retryAfterSeconds + 1) * 1000);
+
+        try {
+          const output = await runInReplicateQueue(() =>
+            replicate.run(model, { input }),
+          );
+          return { output, model };
+        } catch (retryError) {
+          lastError = retryError;
+
+          if (
+            !isReplicateRateLimited(retryError) &&
+            !isReplicateModelNotFound(retryError)
+          ) {
+            throw retryError;
+          }
+
+          continue;
+        }
+      }
 
       if (!isReplicateModelNotFound(error)) {
         throw error;
