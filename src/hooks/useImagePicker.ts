@@ -76,13 +76,13 @@ export function useImagePicker() {
         const result =
           source === "camera"
             ? await ExpoImagePicker.launchCameraAsync({
-                mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ["images"],
                 quality: 1,
                 allowsEditing: false,
                 base64: false,
               })
             : await ExpoImagePicker.launchImageLibraryAsync({
-                mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ["images"],
                 quality: 1,
                 allowsEditing: false,
                 base64: false,

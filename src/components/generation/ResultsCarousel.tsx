@@ -7,7 +7,7 @@ import type { ClipArtStyle, GenerationResult } from "../../types";
 import { Badge } from "../ui/Badge";
 
 interface ResultsCarouselProps {
-  items: Array<{ style: ClipArtStyle; result: GenerationResult }>;
+  items: { style: ClipArtStyle; result: GenerationResult }[];
 }
 
 export function ResultsCarousel({ items }: ResultsCarouselProps) {

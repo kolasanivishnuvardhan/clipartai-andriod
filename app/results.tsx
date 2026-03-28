@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
@@ -97,7 +97,6 @@ export default function ResultsScreen() {
 
         <FlashList
           data={selectedStyleModels}
-          estimatedItemSize={320}
           keyExtractor={(item: ClipArtStyle) => item.id}
           contentContainerStyle={{ paddingBottom: spacing.x2l }}
           ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}

@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 
 import type { AllowedMimeType } from "../constants/config";
@@ -91,7 +91,7 @@ function getResizeDimensions(width: number, height: number): {
 }
 
 async function getFileSize(uri: string): Promise<number> {
-  const fileInfo = await FileSystem.getInfoAsync(uri, { size: true });
+  const fileInfo = await FileSystem.getInfoAsync(uri);
   return fileInfo.exists ? (fileInfo.size ?? 0) : 0;
 }
 

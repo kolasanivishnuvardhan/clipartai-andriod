@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 
@@ -99,7 +99,7 @@ export async function shareImage(
 }
 
 export async function saveAllImagesSequentially(
-  items: Array<{ styleId: StyleId; imageUrl: string }>,
+  items: { styleId: StyleId; imageUrl: string }[],
   onProgress?: (progress: SaveAllProgress) => void,
 ): Promise<void> {
   const total = items.length;
