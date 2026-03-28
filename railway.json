@@ -3,6 +3,6 @@
     "watchPatterns": ["backend/**"]
   },
   "deploy": {
-    "startCommand": "npm --prefix backend start"
+    "startCommand": "npm --prefix backend ci --omit=dev ; npm --prefix backend start"
   }
 }
