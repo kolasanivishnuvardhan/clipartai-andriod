@@ -1,5 +1,5 @@
 {
   "deploy": {
-    "startCommand": "node server.js"
+    "startCommand": "npm ci --omit=dev && npm start"
   }
 }
