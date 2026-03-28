@@ -21,7 +21,7 @@ export const APP_CONFIG = {
   generation: {
     defaultStyleIds: STYLE_IDS as StyleId[],
     totalStyles: 5,
-    parallelRequests: 5,
+    parallelRequests: 1,
   },
 } as const;
 

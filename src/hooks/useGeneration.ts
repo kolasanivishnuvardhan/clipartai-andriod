@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 
+import { APP_CONFIG } from "../constants/config";
 import {
   generateStyleImage,
   ServiceError,
@@ -99,11 +100,24 @@ export function useGeneration() {
         setResultStatus(styleId, "loading");
       });
 
-      const tasks = styleIds.map(async (styleId) => {
-        await generateSingle(styleId, sourceImageBase64);
-      });
+      const maxParallel = Math.max(1, APP_CONFIG.generation.parallelRequests);
+      let nextIndex = 0;
 
-      await Promise.allSettled(tasks);
+      const runWorker = async () => {
+        while (nextIndex < styleIds.length) {
+          const currentIndex = nextIndex;
+          nextIndex += 1;
+          const styleId = styleIds[currentIndex];
+          await generateSingle(styleId, sourceImageBase64);
+        }
+      };
+
+      const workers = Array.from(
+        { length: Math.min(maxParallel, styleIds.length) },
+        () => runWorker(),
+      );
+
+      await Promise.all(workers);
       return styleIds.length;
     },
     onError: () => {

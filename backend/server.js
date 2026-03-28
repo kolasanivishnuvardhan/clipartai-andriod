@@ -113,6 +113,35 @@ function isReplicateModelNotFound(error) {
   return statusCode === 404 || message.includes("status 404 Not Found");
 }
 
+function isReplicateRateLimited(error) {
+  const statusCode =
+    error?.response?.status ||
+    error?.status ||
+    error?.statusCode ||
+    null;
+  const message = String(error?.message || "");
+
+  return statusCode === 429 || message.includes("status 429 Too Many Requests");
+}
+
+function extractRetryAfterSeconds(error) {
+  const fromHeader =
+    Number(error?.response?.headers?.get?.("retry-after")) ||
+    Number(error?.response?.headers?.["retry-after"]);
+
+  if (Number.isFinite(fromHeader) && fromHeader > 0) {
+    return fromHeader;
+  }
+
+  const message = String(error?.message || "");
+  const match = message.match(/"retry_after"\s*:\s*(\d+)/i);
+  if (match) {
+    return Number(match[1]);
+  }
+
+  return null;
+}
+
 async function runGenerationWithModelFallback(input) {
   let lastError = null;
 
@@ -270,6 +299,22 @@ app.post("/api/generate", generateLimiter, async (req, res) => {
     console.error("Generation failed:", error);
 
     const modelNotFound = isReplicateModelNotFound(error);
+    const replicateRateLimited = isReplicateRateLimited(error);
+    const retryAfterSeconds = extractRetryAfterSeconds(error);
+
+    if (replicateRateLimited) {
+      res.status(429).json({
+        styleId,
+        imageUrl: null,
+        status: "error",
+        code: "RATE_LIMIT_ERROR",
+        message:
+          retryAfterSeconds && retryAfterSeconds > 0
+            ? `Rate limited by generation provider. Retry in about ${retryAfterSeconds}s.`
+            : "Rate limited by generation provider. Wait a moment and retry.",
+      });
+      return;
+    }
 
     res.status(502).json({
       styleId,
